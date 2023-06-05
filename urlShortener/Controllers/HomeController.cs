@@ -8,6 +8,9 @@ using urlShortener.Helpers;
 using urlShortener.Models;
 using urlShortener.ViewModels;
 using IronBarCode;
+using Microsoft.AspNetCore.Authorization;
+using System.Data;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -27,6 +30,8 @@ namespace urlShortener.Controllers
 
 
         [HttpPost]
+        [Route("getShortUrl")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "user, admin")]
         public async Task<ActionResult> Add(UrlVM u)
         {
             string path = encodeDecode.generateRandom();
@@ -46,8 +51,6 @@ namespace urlShortener.Controllers
 
             }
 
-
-
             _db.urls.Add(new Models.Url
             {
                 originalUrl = u.originalUrl,
@@ -63,6 +66,7 @@ namespace urlShortener.Controllers
 
         [HttpPost]
         [Route("getOriginalUrl")]
+        [Authorize(Roles = "user, admin")]
         public async Task<ActionResult> get(string u)
         {
             var x = _db.urls.FirstOrDefault(o => o.urlIdentifier == u);
@@ -72,6 +76,7 @@ namespace urlShortener.Controllers
 
 
         [HttpGet("/RedirectTo/{path:required}")]
+        [AllowAnonymous]
         public IActionResult RedirectTo(string path)
         {
             if (path == null)
@@ -81,11 +86,16 @@ namespace urlShortener.Controllers
 
             var x = _db.urls.FirstOrDefault(o => o.urlIdentifier == path);
 
+            x.clickCount = x.clickCount + 1;
+
+            _db.SaveChanges();
+
             return Redirect(x.originalUrl);
         }
 
         [HttpPost]
-        [Route("/getQr")]
+        [Route("getQr")]
+        [Authorize(Roles = "user, admin")]
         public IActionResult getQr(string url)
         {
 
@@ -97,6 +107,46 @@ namespace urlShortener.Controllers
             return Ok();
         }
 
+        //[HttpPost]
+        //[Route("getQrShortUrl")]
+        //[Authorize(Roles = "user, admin")]
+        //public IActionResult getQrShort(string shortUrl)
+        //{
+
+        //    GeneratedBarcode myBarcode = BarcodeWriter.CreateBarcode(shortUrl, BarcodeEncoding.QRCode);
+
+        //    string x = encodeDecode.generateRandom();
+        //    string save = x + ".png";
+        //    myBarcode.SaveAsImage("./generatedQR/" + save);
+        //    return Ok();
+        //}
+
+
+        [HttpPost]
+        [Route("getQrPath")]
+        [Authorize(Roles = "user, admin")]
+        public IActionResult getQrPath(string path)
+        {
+            var url = _db.urls.FirstOrDefault(o => o.urlIdentifier == path);
+
+            string originalUrl = url.originalUrl;
+            GeneratedBarcode myBarcode = BarcodeWriter.CreateBarcode(originalUrl, BarcodeEncoding.QRCode);
+
+            string x = encodeDecode.generateRandom();
+            string save = x + ".png";
+            myBarcode.SaveAsImage("./generatedQR/" + save);
+            return Ok();
+        }
+
+        [HttpPost]
+        [Route("getCount")]
+        [Authorize(Roles = "admin")]
+        public IActionResult getCount(string path)
+        {
+            var x = _db.urls.FirstOrDefault(o => o.urlIdentifier == path);
+            int count = x.clickCount;
+            return Ok(count);
+        }
 
     }
 }

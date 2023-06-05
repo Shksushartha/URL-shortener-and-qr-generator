@@ -8,6 +8,7 @@ namespace urlShortener.Data
     {
 
         public DbSet<Url> urls { get; set; }
+        public DbSet<User> users { get; set; }
 
 
         public UrlDbContext(DbContextOptions<UrlDbContext> options) : base(options)

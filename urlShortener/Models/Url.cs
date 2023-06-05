@@ -11,6 +11,8 @@ namespace urlShortener.Models
 
         public string originalUrl { get; set; } = null!;
 
+        public int clickCount { get; set; }
+
 
 
 
